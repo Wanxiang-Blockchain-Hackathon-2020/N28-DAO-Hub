@@ -1,0 +1,2 @@
+# N28-DAO-Hub
+A DAO hub is a platform for running a DAO(Decentralized Autonomous Organizations). DAOs are groups of people united by trustless decision-making frameworks, usually built on the blockchain. They combine ideas about cooperativism with newly invented cryptography and networking technology. Decisions made by these groups, (or organizations), are self-actuating via interaction between smart-contracts, (hence autonomous) which radically diminishes de need for middle men or intermediaries, (hence decentralized).
