@@ -1,0 +1,195 @@
+/* eslint-disable no-param-reassign */
+/* eslint-disable no-shadow */
+
+
+// 工厂函数 getDefaultState 初始化、重置
+const getDefaultState = () => {
+  console.log('scatter')
+  return {
+    // account 是個物件, .name 才是帳號名
+    account: null,
+    api: null,
+    balances: {
+      eos: '... EOS'
+    },
+    isConnected: false,
+    isLoggingIn: false,
+    isLoadingData: false
+  }
+}
+// 初始化
+
+// initial state
+export const state = getDefaultState
+
+export const getters = {
+  currentBalance: ({ balances }) => balances.eos,
+  currentUsername: ({ account }) => (account ? account.name : null)
+}
+
+export const mutations = {
+  setIsLoggingIn(state, isLoggingIn = false) {
+    state.isLoggingIn = isLoggingIn
+  },
+  setIsConnected(state, isConnected) {
+    state.isConnected = isConnected
+  },
+  setAccount(state, account = null) {
+    state.account = account
+  },
+  setAPI(state, api = null) {
+    state.api = api
+  },
+  setBalance(state, { symbol, balance }) {
+    state.balances[symbol] = balance
+  },
+  // 重置
+  resetState (state) {
+    Object.assign(state, getDefaultState())
+  }
+}
+
+export const actions = {
+  async getAPI({ commit, state }) {
+    if (!state.api) {
+      const { default: API } = await import(/* webpackChunkName: "EOS" */ '@/api/scatter')
+      commit('setAPI', API)
+    }
+    return state.api
+  },
+  async connect({ commit, dispatch }) {
+    const api = await dispatch('getAPI')
+    console.log('Connecting to Scatter wallet or Scatter desktop...')
+    const connected = await api.connect()
+    console.log('🛸Scatter🛸 connect result: ', connected)
+    // 不論有沒有連上都應該設定狀態，要是連上後登陸前把錢包關了(或是錢包當了)
+    // 就會造成狀態不合
+    // 加上 try catch 也是為了接下來的順利執行到
+    // 參考 https://es6.ruanyifeng.com/#docs/async
+    commit('setIsConnected', connected)
+    if (connected) {
+      const account = api.account()
+      if (account) {
+        commit('setAccount', account)
+        dispatch('setBalances')
+        // Scatter 10.0 need to suggestNetwork, if not, scatter is not working on login
+        await api
+          .suggestNetworkAsync()
+          .then(added => console.log('🛸Scatter🛸 suggest network result: ', added))
+        return true
+      }
+    }
+    return false
+  },
+  // tokenName 传进来判断是提现什么通证
+  async getSignature({ dispatch, state }, { mode, rawSignData, tokenName }) {
+    const api = await dispatch('getAPI')
+    const { eos } = await import(/* webpackChunkName: "EOS" */ '@/api/scatter')
+    const { account } = state
+    const result = await eos().getAccount(account.name)
+    // 获取当前权限
+    const permissions = result.permissions.find(x => x.perm_name === account.authority)
+    // 获取当前权限的public key
+    const publicKey = permissions.required_auth.keys[0].key
+
+    let signData = null
+    let memo = null
+    if (mode === 'Article') {
+      const [author, hash] = rawSignData
+      const hashPiece = [
+        hash.slice(0, 12),
+        hash.slice(12, 24),
+        hash.slice(24, 36),
+        hash.slice(36, 48)
+      ]
+      signData = `${author} ${hashPiece[0]} ${hashPiece[1]} ${hashPiece[2]} ${hashPiece[3]}`
+      memo = 'Smart Signature'
+    } else if (mode === 'Auth') {
+      ;[signData] = rawSignData
+      memo = 'Auth'
+    } else if (mode === 'withdraw') {
+      // 如果是EOS登录提现ONT
+      if (tokenName === 'ONT') {
+        // 字符串切割 ont 提现地址和合约切割
+        const strSlice = str => [str.slice(0, 12), str.slice(12, 24), str.slice(24, 36)]
+        rawSignData[0] = strSlice(rawSignData[0]).join(' ') // 提现地址
+        rawSignData[1] = strSlice(rawSignData[1]).join(' ') // 合约地址
+      }
+      signData = rawSignData.join(' ')
+      memo = 'withdraw'
+    }
+    // 申请签名
+    const signature = await api.getArbitrarySignature(publicKey, signData, memo)
+    console.log('got signature: ', signature)
+    return { publicKey, signature, username: account.name }
+  },
+  async recordOrder(
+    {
+      state: { account }
+    },
+    order
+  ) {
+    const { recordOrder } = await import(/* webpackChunkName: "EOS" */ '@/api/contractEOS')
+    return recordOrder({ account, ...order })
+  },
+  async recordShare(
+    {
+      state: { account }
+    },
+    share
+  ) {
+    const { recordShare } = await import(/* webpackChunkName: "EOS" */ '@/api/contractEOS')
+    return recordShare({ account, ...share })
+  },
+  async setBalances({ commit, dispatch, state }) {
+    const api = await dispatch('getAPI')
+    const { name } = state.account
+    const contractType = 'eos'
+    if (contractType) {
+      const balances = await Promise.all([
+        api.getBalancesByContract({ symbol: 'eos', accountName: name })
+      ])
+      const eos = balances[0][0] || '0 EOS'
+      commit('setBalance', { symbol: 'eos', balance: eos })
+    }
+  },
+  async login({ commit, dispatch }) {
+    const api = await dispatch('getAPI')
+    console.log('Start log in...')
+    commit('setIsLoggingIn', true)
+    try {
+      const identity = await api.loginScatterAsync()
+      if (!identity) {
+        // 失敗若是走了 catch ，這條也不會 run
+        commit('setAccount')
+        commit('setIsLoggingIn')
+        throw new Error('Failed to get identity in Scatter')
+      }
+      const account = identity.accounts.find(({ blockchain }) => blockchain === 'eos')
+      commit('setAccount', account)
+      console.log(account, 'log in successful.')
+      dispatch('setBalances')
+      commit('setIsLoggingIn')
+      return account
+    } catch (error) {
+      commit('setIsLoggingIn')
+      console.error('Failed to log in Scatter :', error)
+      throw error
+    }
+  },
+  async logout({ commit, dispatch }) {
+    const api = await dispatch('getAPI')
+    try {
+      await api.logout()
+    } catch (err) {
+      console.error('Failed to logout Scatter', err)
+    }
+    commit('setAccount')
+    commit('setBalance', { symbol: 'eos', balance: '... EOS' })
+    commit('setIsLoggingIn')
+  },
+  // 重置
+  resetState ({ commit }) {
+    commit('resetState')
+  },
+}

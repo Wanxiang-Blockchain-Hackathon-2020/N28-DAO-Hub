@@ -1,0 +1,134 @@
+
+.widget-help {
+  padding: 0 20px;
+  &-title {
+    font-size:16px;
+    font-weight:600;
+    color:rgba(0,0,0,1);
+    text-align: center;
+    padding: 0;
+    margin: 0 0 20px 0;
+  }
+  &-content {
+    font-size:14px;
+    font-weight:400;
+    color:rgba(45,45,45,1);
+    text-align: justify;
+    line-height: 1.5;
+    padding: 0;
+    margin: 0 0 20px 0;
+  }
+  &::after{
+    display: block;
+    content: '';
+    clear: both;
+    width: 0;
+    height: 0;
+  }
+}
+
+
+.transfer-help {
+  display: block;
+  font-size:12px;
+  font-weight:500;
+  color: @purpleDark;
+  cursor: pointer;
+  padding: 0;
+  margin: 0 0 20px;
+}
+
+
+.transfer—search__list {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 32px;
+  background: #fff;
+  border: 1px solid #B2B2B2;
+  border-top: none;
+  border-radius: 0 0 8px 8px;
+  z-index: 1;
+  padding: 4px 0 0 0;
+  &__avatar {
+    margin-right: 10px;
+    flex: 0 0 30px;
+  }
+  & > div {
+    width: 100%;
+    margin: 0;
+    padding: 5px 20px;
+    display: flex;
+    align-items: center;
+    box-sizing: border-box;
+    &:hover {
+      background: #f1f1f1;
+    }
+    span {
+      font-size:14px;
+      font-weight:400;
+      color:rgba(178,178,178,1);
+      text-overflow: ellipsis;
+      overflow: hidden;
+      white-space: nowrap;
+    }
+  }
+}
+
+
+.search-user {
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  &-avatar {
+    width: 40px;
+    height: 40px;
+    margin-right: 10px;
+    flex: 0 0 40px;
+  }
+  span {
+    font-size:14px;
+    font-weight:400;
+    color:rgba(178,178,178,1);
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+  .gift-ful {
+    cursor: pointer;
+    position: absolute;
+    top: -2px;
+    right: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #000;
+    font-size: 20px;
+  }
+}
+
+
+.form-button {
+  display: flex;
+  justify-content: flex-end;
+  button {
+    padding-left: 40px;
+    padding-right: 40px;
+  }
+}
+
+// result transition
+.result-enter-active,
+.result-leave-active {
+  transition: opacity .2s;
+}
+.result-enter,
+.result-leave-to {
+  opacity: 0
+}
+
+// history user
+.history-user__tag {
+  cursor: pointer;
+  margin: 0 10px 0 0;
+}
