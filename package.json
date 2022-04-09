@@ -40,7 +40,7 @@
     "markdown-it-footnote": "^3.0.2",
     "markdown-it-katex": "^2.0.3",
     "mavon-editor-matataki": "2.20.0",
-    "moment": "^2.24.0",
+    "moment": "^2.29.2",
     "normalize.css": "^8.0.1",
     "nuxt": "^2.0.0",
     "nuxt-i18n": "6.6.0",
